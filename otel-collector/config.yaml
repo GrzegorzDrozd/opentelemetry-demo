@@ -1,0 +1,246 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 4096
+    spike_limit_mib: 256
+
+connectors:
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms]
+    dimensions:
+      - name: http.method
+        default: GET
+      - name: http.status_code
+
+  routing/traces:
+    default_pipelines: [ traces/default ]
+    error_mode: ignore
+    table:
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony1"'
+        pipelines: [ traces/service-symfony1 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony2"'
+        pipelines: [ traces/service-symfony2 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "laravel"'
+        pipelines: [ traces/service-laravel ]
+
+  routing/metrics:
+    default_pipelines: [ metrics/default ]
+    error_mode: ignore
+    table:
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony1"'
+        pipelines: [ metrics/service-symfony1 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony2"'
+        pipelines: [ metrics/service-symfony2 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "laravel"'
+        pipelines: [ metrics/service-laravel ]
+
+  routing/logs:
+    default_pipelines: [ logs/default ]
+    error_mode: ignore
+    table:
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony1"'
+        pipelines: [ logs/service-symfony1 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "symfony2"'
+        pipelines: [ logs/service-symfony2 ]
+      - context: resource
+        condition: 'resource.attributes["service.name"] == "laravel"'
+        pipelines: [ logs/service-laravel ]
+
+exporters:
+  debug:
+    verbosity: detailed
+
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  otlp/jaeger:
+    endpoint: otel-jaeger:4317
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  zipkin:
+    endpoint: "http://otel-zipkin:9411/api/v2/spans"
+
+  opensearch/logs:
+    logs_index: "logs-stream"
+    http:
+      endpoint: "http://opensearch-node1:9200"
+      tls:
+        insecure: true
+    dataset: logs
+
+  opensearch/traces:
+    http:
+      endpoint: "http://opensearch-node1:9200/otel-v1-apm-span-000001"
+      tls:
+        insecure: true
+    dataset: traces
+
+  otlp/opensearch-traces:
+    endpoint: "data-prepper:21890"
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  otlp/opensearch-metrics:
+    endpoint: "data-prepper:21891"
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  otlp/opensearch-metrics2:
+    endpoint: "data-prepper:21893"
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  otlp/opensearch-logs:
+    endpoint: "data-prepper:21892"
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+  otlp/uptrace-symfony1:
+    endpoint: http://uptrace:14317
+    tls:
+      insecure: true
+    headers: { 'uptrace-dsn': 'http://project2_secret_token@uptrace:14318?grpc=14317' }
+
+  otlp/uptrace-symfony2:
+    endpoint: http://uptrace:14317
+    tls:
+      insecure: true
+    headers: { 'uptrace-dsn': 'http://project3_secret_token@uptrace:14318?grpc=14317' }
+
+  otlp/uptrace-laravel:
+    endpoint: http://uptrace:14317
+    tls:
+      insecure: true
+    headers: { 'uptrace-dsn': 'http://project4_secret_token@localhost:14318?grpc=14317' }
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1888
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces/in:
+      receivers: [otlp]
+      exporters: [ routing/traces ]
+
+    metrics/in:
+      receivers: [otlp]
+      exporters: [ routing/metrics ]
+
+    logs/in:
+      receivers: [otlp]
+      exporters: [ routing/logs ]
+
+#    traces:
+#      receivers: [otlp]
+#      processors: [memory_limiter, batch]
+#      exporters: [spanmetrics, otlp/jaeger, otlp/opensearch-traces]
+
+#    metrics:
+#      receivers: [otlp]
+#      processors: [memory_limiter, batch]
+#      exporters: [debug]
+#      prometheus,otlp/opensearch-metrics2
+
+    metrics/spanmetrics:
+      receivers: [spanmetrics]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [opensearch/logs]
+
+    traces/default:
+      receivers: [routing/traces]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger, otlp/opensearch-traces, spanmetrics]
+
+    metrics/default:
+      receivers: [routing/metrics]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger, otlp/opensearch-metrics]
+
+    logs/default:
+      receivers: [routing/logs]
+      processors: [memory_limiter, batch]
+      exporters: [opensearch/logs]
+
+    traces/service-symfony1:
+      receivers: [ routing/traces ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony1, otlp/jaeger, otlp/opensearch-traces ]
+
+    metrics/service-symfony1:
+      receivers: [ routing/metrics ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony1, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
+
+    logs/service-symfony1:
+      receivers: [ routing/logs ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony1 ]
+
+    traces/service-symfony2:
+      receivers: [ routing/traces ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony2, otlp/jaeger, otlp/opensearch-traces ]
+
+    metrics/service-symfony2:
+      receivers: [ routing/metrics ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony2, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2]
+
+    logs/service-symfony2:
+      receivers: [ routing/logs ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-symfony2 ]
+
+    traces/service-laravel:
+      receivers: [ routing/traces ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-laravel, otlp/jaeger, otlp/opensearch-traces ]
+
+    metrics/service-laravel:
+      receivers: [ routing/metrics ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-laravel, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
+
+    logs/service-laravel:
+      receivers: [ routing/logs ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp/uptrace-laravel]
+

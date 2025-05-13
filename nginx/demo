@@ -1,0 +1,13 @@
+server {
+     listen       80;
+#      server_name  demo.local;
+     root         /demo;
+
+     access_log /var/log/nginx/demo-access.log;
+     error_log  /var/log/nginx/demo-error.log error;
+     index index.html;
+
+#      location / {
+#         try_files $uri;
+#      }
+}

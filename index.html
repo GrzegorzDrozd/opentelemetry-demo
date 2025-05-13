@@ -1,0 +1,59 @@
+<html lang="en">
+<head>
+    <title>OTEL Demo page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .link-container {
+            margin: 20px 0;
+        }
+        a {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+            cursor: pointer;
+        }
+        a:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+
+<body>
+<h1>OTEL Demo</h1>
+    <div class="link-container">
+        <a target="_blank" onclick="openPortLink(9991);">symfony1 on port 9991</a>
+        <a target="_blank" onclick="openPortLink(9992);">symfony2 on port 9992</a>
+        <a target="_blank" onclick="openPortLink(9993);">laravel on port 9993</a>
+        <a target="_blank" onclick="openPortLink(16686);">jaeger on port 16686</a>
+        <a target="_blank" onclick="openPortLink(9411);">zipkin on port 9411</a>
+        <a target="_blank" onclick="openPortLink(5601);">opensearch on port 5601</a>
+        <a target="_blank" onclick="openPortLink(9090);">prometheus on port 9090</a>
+        <a target="_blank" onclick="openPortLink(3000);">grafana on port 3000</a>
+            <em>user demo, password demo</em>
+        <a target="_blank" onclick="openPortLink(24318);">uptrace on port 24318</a>
+            <em>user uptrace@localhost, uptrace</em>
+    </div>
+<script>
+    // Get the current hostname
+    const hostname = window.location.hostname;
+
+    // Display the current hostname
+    document.getElementById('current-hostname').textContent = hostname;
+
+    // Function to open a link with the current hostname and specified port
+    function openPortLink(port) {
+        const url = `http://${hostname}:${port}`;
+        window.open(url, '_blank');
+    }
+</script>
+</body>
+</html>

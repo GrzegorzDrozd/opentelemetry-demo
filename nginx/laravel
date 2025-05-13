@@ -1,0 +1,36 @@
+server {
+     listen       83;
+#      server_name  laravel.local;
+     root         /app/laravel/public;
+
+     access_log /var/log/nginx/laravel-access.log;
+     error_log  /var/log/nginx/laravel-error.log error;
+     index index.php;
+
+     location / {
+        try_files $uri $uri/ /index.php$is_args$args;
+     }
+
+    location ~ \.php$ {
+        fastcgi_pass laravel:9000;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $document_root;
+        fastcgi_param SERVER_NAME $host;
+        fastcgi_param OTEL_EXPORTER_OTLP_ENDPOINT "http://otel-collector:4317";
+        fastcgi_param OTEL_EXPORTER_OTLP_PROTOCOL "grpc";
+        fastcgi_param OTEL_METRICS_EXPORTER "otlp";
+        fastcgi_param OTEL_TRACES_EXPORTER "otlp";
+        fastcgi_param OTEL_LOGS_EXPORTER "otlp";
+        fastcgi_param OTEL_PROPAGATORS "tracecontext";
+        fastcgi_param OTEL_BSP_MAX_QUEUE_SIZE 7000;
+        fastcgi_param OTEL_SERVICE_NAME "laravel";
+        fastcgi_param OTEL_TRACES_SAMPLER "always_on";
+        fastcgi_param OTEL_PHP_AUTOLOAD_ENABLED "true";
+        fastcgi_read_timeout 300s;
+        fastcgi_param PHP_VALUE "max_execution_time=300;\nopentelemetry.attr_hooks_enabled=on";
+    }
+}
+
+
