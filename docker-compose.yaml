@@ -112,6 +112,8 @@ services:
       - '4317:4317' # OTLP gRPC receiver
       - '4318:4318' # OTLP http receiver
       - '55679:55679' # zpages extension
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   otel-jaeger:
     image: jaegertracing/jaeger:2.5.0
@@ -187,6 +189,24 @@ services:
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
 
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.118.0
+    networks:
+      - app-network
+    ports:
+      - "28428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:latest
+    networks:
+      - app-network
+    ports:
+      - "29428:9428"
+    volumes:
+      - victorialogs-data:/victoria-logs-data
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -252,7 +272,7 @@ services:
       - ./uptrace/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
       - '8123:8123'
-      - '9000:9000'
+      - '19000:9000'
       - '9440:9440'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
@@ -312,6 +332,10 @@ volumes:
   opensearch-data1:
 
   grafana-data:
+
+  victoriametrics-data:
+
+  victorialogs-data:
 
   pg_data:
 

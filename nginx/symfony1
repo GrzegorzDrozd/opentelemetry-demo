@@ -28,6 +28,7 @@ server {
         fastcgi_param OTEL_BSP_MAX_QUEUE_SIZE 7000;
         fastcgi_param OTEL_SERVICE_NAME "symfony1";
         fastcgi_param OTEL_TRACES_SAMPLER "always_on";
+        fastcgi_param OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE "Delta";
         fastcgi_param OTEL_PHP_AUTOLOAD_ENABLED "true";
         fastcgi_read_timeout 300s;
         fastcgi_param PHP_VALUE "max_execution_time=300;\nopentelemetry.attr_hooks_enabled=on";

@@ -28,10 +28,12 @@ if [ ! -f "$FILE_NAME" ]; then
 fi
 CONCURRENCY=5
 TIME="40m"
-while getopts "c:t:" opt; do
+QPS=1
+while getopts "c:t:q:" opt; do
   case $opt in
     c) CONCURRENCY=$OPTARG;;
     t) TIME=$OPTARG;;
+    q) QPS=$OPTARG;;
   esac
 done
 
@@ -42,4 +44,4 @@ docker compose exec symfony2 bash -c "find var/log -type f -name '*.log' -exec t
 docker compose exec laravel bash -c "find storage/logs -type f -name '*.log' -exec truncate -s 0 {} \;"
 
 # generate actual load
-./oha-linux-amd64 --urls-from-file urls.txt -c $CONCURRENCY -z $TIME --http-version=1.0
+./oha-linux-amd64 --urls-from-file urls.txt -c $CONCURRENCY -z $TIME -q $QPS --http-version=1.0

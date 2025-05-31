@@ -18,7 +18,7 @@
             <shard>
                 <replica>
                     <host>clickhouse</host>
-                    <port>9000</port>
+                    <port>19000</port>
                 </replica>
             </shard>
         </uptrace-cluster1>

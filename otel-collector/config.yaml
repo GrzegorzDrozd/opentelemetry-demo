@@ -16,15 +16,33 @@ processors:
     limit_mib: 4096
     spike_limit_mib: 256
 
+#  attributes/db_metrics:
+#    actions:
+#      - key: db.query.text
+#        action: delete
+#      - key: instance
+#        action: delete
+#      - key: service.instance.id
+#        action: delete
+
+#  cumulativetodelta:
+#    include:
+#      match_type: strict
+#      metrics:
+#        - db_client_operation_duration_milliseconds_bucket
+#        - db_client_operation_duration_milliseconds_count
+#        - db_client_connection_create_time_milliseconds_bucket
+#        - db_client_connection_create_time_milliseconds_count
+
 connectors:
-  spanmetrics:
-    histogram:
-      explicit:
-        buckets: [100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms]
-    dimensions:
-      - name: http.method
-        default: GET
-      - name: http.status_code
+#  spanmetrics:
+#    histogram:
+#      explicit:
+#        buckets: [100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms, 350ms, 500ms, 750ms, 1000ms]
+#    dimensions:
+#      - name: http.method
+#        default: GET
+#      - name: http.status_code
 
   routing/traces:
     default_pipelines: [ traces/default ]
@@ -72,8 +90,28 @@ exporters:
   debug:
     verbosity: detailed
 
-  prometheus:
-    endpoint: "0.0.0.0:8889"
+#  prometheus:
+#    endpoint: "0.0.0.0:8889"
+#    send_timestamps: true
+#    metric_expiration: 10m
+#    resource_to_telemetry_conversion:
+#      enabled: false
+
+  otlphttp/victoriametrics:
+    compression: gzip
+    encoding: proto
+    metrics_endpoint: http://victoriametrics:8428/opentelemetry/v1/metrics
+    logs_endpoint: http://victoriametrics:8428/insert/opentelemetry/v1/logs
+    tls:
+      insecure: true
+
+  otlphttp/victorialogs:
+    compression: gzip
+    encoding: proto
+    metrics_endpoint: http://victorialogs:9428/opentelemetry/v1/metrics
+    logs_endpoint: http://victorialogs:9428/insert/opentelemetry/v1/logs
+    tls:
+      insecure: true
 
   otlp/jaeger:
     endpoint: otel-jaeger:4317
@@ -141,6 +179,21 @@ exporters:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project4_secret_token@localhost:14318?grpc=14317' }
 
+  sentry/symfony1:
+    dsn: http://0aab43ba6ae02685ddef871e013312f2@host.docker.internal:9000/2
+    environment: prod
+    insecure_skip_verify: true
+
+  sentry:
+    dsn: http://cfcba32aba500388b3860b5fdb276f61@host.docker.internal:9000/3
+    environment: prod
+    insecure_skip_verify: true
+
+  sentry/laravel:
+    dsn: http://a6e25efb353bab91288a822d298feedc@host.docker.internal:9000/4
+    environment: prod
+    insecure_skip_verify: true
+
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
@@ -175,9 +228,9 @@ service:
 #      exporters: [debug]
 #      prometheus,otlp/opensearch-metrics2
 
-    metrics/spanmetrics:
-      receivers: [spanmetrics]
-      exporters: [prometheus]
+#    metrics/spanmetrics:
+#      receivers: [spanmetrics]
+#      exporters: [prometheus]
 
     logs:
       receivers: [otlp]
@@ -187,7 +240,7 @@ service:
     traces/default:
       receivers: [routing/traces]
       processors: [memory_limiter, batch]
-      exporters: [otlp/jaeger, otlp/opensearch-traces, spanmetrics]
+      exporters: [otlp/jaeger, otlp/opensearch-traces]
 
     metrics/default:
       receivers: [routing/metrics]
@@ -206,8 +259,8 @@ service:
 
     metrics/service-symfony1:
       receivers: [ routing/metrics ]
-      processors: [ memory_limiter, batch ]
-      exporters: [ otlp/uptrace-symfony1, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
+      processors: [ memory_limiter, batch]
+      exporters: [ otlp/uptrace-symfony1, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
 
     logs/service-symfony1:
       receivers: [ routing/logs ]
@@ -217,17 +270,17 @@ service:
     traces/service-symfony2:
       receivers: [ routing/traces ]
       processors: [ memory_limiter, batch ]
-      exporters: [ otlp/uptrace-symfony2, otlp/jaeger, otlp/opensearch-traces ]
+      exporters: [ otlp/uptrace-symfony2, otlp/jaeger, otlp/opensearch-traces]
 
     metrics/service-symfony2:
       receivers: [ routing/metrics ]
       processors: [ memory_limiter, batch ]
-      exporters: [ otlp/uptrace-symfony2, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2]
+      exporters: [ otlp/uptrace-symfony2, otlphttp/victoriametrics, otlp/opensearch-metrics, otlp/opensearch-metrics2]
 
     logs/service-symfony2:
       receivers: [ routing/logs ]
       processors: [ memory_limiter, batch ]
-      exporters: [ otlp/uptrace-symfony2 ]
+      exporters: [ otlp/uptrace-symfony2, otlphttp/victorialogs ]
 
     traces/service-laravel:
       receivers: [ routing/traces ]
@@ -237,7 +290,7 @@ service:
     metrics/service-laravel:
       receivers: [ routing/metrics ]
       processors: [ memory_limiter, batch ]
-      exporters: [ otlp/uptrace-laravel, prometheus, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
+      exporters: [ otlp/uptrace-laravel, otlp/opensearch-metrics, otlp/opensearch-metrics2 ]
 
     logs/service-laravel:
       receivers: [ routing/logs ]

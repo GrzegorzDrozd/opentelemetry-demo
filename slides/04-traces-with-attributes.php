@@ -4,6 +4,8 @@ putenv('OTEL_PHP_AUTOLOAD_ENABLED=true');
 putenv('OTEL_TRACES_SAMPLER=always_on');
 
 use OpenTelemetry\API\Instrumentation\CachedInstrumentation;
+use OpenTelemetry\API\Instrumentation\SpanAttribute;
+use OpenTelemetry\API\Instrumentation\WithSpan;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\SDK\Common\Export\InMemoryStorageManager;
@@ -11,15 +13,29 @@ use OpenTelemetry\SDK\Common\Export\InMemoryStorageManager;
 require_once '../symfony2/vendor/autoload.php';
 
 $instrumentation = new CachedInstrumentation('otel.demo',null,'https://opentelemetry.io/schemas/1.30.0');
+
 $builder = $instrumentation->tracer()->spanBuilder('demo')
     ->setSpanKind(SpanKind::KIND_SERVER)
-    ->setAttribute('http.route', '/show/product/:id')
 ;
 $span = $builder->startSpan();
 $parent = Context::getCurrent();
 Context::storage()->attach($span->storeInContext($parent));
-//do stuff
-sleep(2);
+
+class SomeService {
+    #[WithSpan('doing-some-work')]
+    public function doSomeWork(
+        #[SpanAttribute('accountId')] int $accountId,
+        #[SpanAttribute('job-id')] string $jobId,
+        #[SpanAttribute('other-arg')] string $otherArg='this-does-not-work-for-default-values',
+    ): void {}
+}
+$service = (new SomeService())->doSomeWork(1, '123');
+
+
+
+
+
+
 $span->end();
 
 // debug only
