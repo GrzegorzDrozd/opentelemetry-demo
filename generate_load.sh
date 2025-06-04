@@ -44,4 +44,4 @@ docker compose exec symfony2 bash -c "find var/log -type f -name '*.log' -exec t
 docker compose exec laravel bash -c "find storage/logs -type f -name '*.log' -exec truncate -s 0 {} \;"
 
 # generate actual load
-./oha-linux-amd64 --urls-from-file urls.txt -c $CONCURRENCY -z $TIME -q $QPS --http-version=1.0
+./oha-linux-amd64 --urls-from-file urls_s2.txt -c $CONCURRENCY -z $TIME -q $QPS --http-version=1.0

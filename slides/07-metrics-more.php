@@ -15,24 +15,27 @@ function callExternalApiExample(): void
 
 
 
-
-
-
 // part under the hood in the framework:
 
+
+
 $tracker = new MetricsTracker();
-$meter = \OpenTelemetry\API\Globals::meterProvider()->getMeter('demo');
 hook(null,'callExternalApiExample',
-    pre: function () use ($meter, $tracker) {
+    pre: function ($objectInstance, array $params) use ($tracker) {
+        $meter = \OpenTelemetry\API\Globals::meterProvider()->getMeter('demo');
         $context = \OpenTelemetry\Context\Context::getCurrent();
         $meter->createCounter('demo.counter')->add(1, context: $context);
         $meter->createUpDownCounter('demo.upDownCounter')->add(1, context: $context);
-        $tracker->start(1/*some id, for example, from params*/);
+        $tracker->start(md5(json_encode($params, JSON_THROW_ON_ERROR)));
     },
-    post: function () use ($meter,$tracker) {
+    post: function ($objectInstance, array $params) use ($tracker) {
+        $meter = \OpenTelemetry\API\Globals::meterProvider()->getMeter('demo');
         $context = \OpenTelemetry\Context\Context::getCurrent();
-        $duration = $tracker->duration(1/*some id, for example, from params*/);
-        $meter->createHistogram('demo.histogram', 'ms'/*milliseconds*/)->record($duration, context: $context);
+        $duration = $tracker->duration(md5(json_encode($params, JSON_THROW_ON_ERROR)));
+        $meter->createHistogram('demo.histogram', 'ms'/*milliseconds*/)->record(
+            $duration,
+            context: $context
+        );
         $meter->createUpDownCounter('demo.upDownCounter')->add(-1, context: $context);
     }
 );

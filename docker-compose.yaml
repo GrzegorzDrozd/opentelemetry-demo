@@ -116,12 +116,14 @@ services:
       - 'host.docker.internal:host-gateway'
 
   otel-jaeger:
-    image: jaegertracing/jaeger:2.5.0
+    image: jaegertracing/jaeger:2.6.0
     restart: always
     networks:
       - app-network
     environment:
       COLLECTOR_ZIPKIN_HOST_PORT: 9412
+    volumes:
+      - ./jaeger/config-spm.yaml:/jaeger/config.yaml
     ports:
       - "9412:9412"
       - "5778:5778"
@@ -133,6 +135,8 @@ services:
       - "16686:16686"
     expose:
       - '8888'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   otel-zipkin:
     image: openzipkin/zipkin-slim
