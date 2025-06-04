@@ -14,7 +14,6 @@ function callExternalApiExample(): void
 
 
 
-
 // part under the hood in the framework:
 
 
